@@ -1,0 +1,313 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for Xiaomi Redmi Note 11T 5G / Redmi Note 11 5G (evergo)
+ *
+ * Based on the camellia (Xiaomi Poco M3 Pro 5G) mainline port and on hardware
+ * facts from the downstream Xiaomi mt6833 kernel trees (evergo / everpal).
+ *
+ * Status: early bring-up. Expected to reach the kernel console on UART0 and
+ * to show the bootloader framebuffer. Everything else is still TODO.
+ *
+ * Copyright (c) 2026 evergo mainlining contributors
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/pinctrl/mediatek,mt6833-pinfunc.h>
+
+#include "mt6833.dtsi"
+
+/ {
+	chassis-type = "handset";
+	compatible = "xiaomi,evergo", "mediatek,mt6833";
+	model = "Xiaomi Redmi Note 11T 5G / Redmi Note 11 5G (evergo)";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		bootargs = "earlycon=mtk8250,0x11002000 console=ttyS0,921600n1 console=tty0 console=ttyGS0 clk_ignore_unused regulator_ignore_unused pd_ignore_unused PMOS_NOSPLASH";
+		stdout-path = "serial0:921600n8";
+
+		/* Address/size follow the downstream evergo DTS
+		 * (atag,videolfb-fb_base_l = <0x7e605000>, vram 0x1be0000).
+		 * FIXME: verify on device - a black screen means the address or
+		 * geometry is wrong for your unit.
+		 */
+		framebuffer0: framebuffer@7e605000 {
+			compatible = "simple-framebuffer";
+			memory-region = <&framebuffer_reserved>;
+			width = <1088>;
+			height = <2400>;
+			stride = <((1080 + 8) * 4)>;
+			format = "a8r8g8b8";
+			status = "okay";
+		};
+	};
+
+	memory: memory@40000000 {
+		device_type = "memory";
+		/* FIXME: evergo ships 4/6/8 GB variants; this describes 6 GB.
+		 * Adjust to your variant or let the bootloader fix it up.
+		 */
+		reg = <0 0x40000000 1 0x80000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* Firmware carveouts copied from the camellia bring-up (same
+		 * SoC and Xiaomi firmware generation).
+		 * FIXME: cross-check against the downstream evergo memory map.
+		 * NOTE: the framebuffer region below intentionally overlaps
+		 * some of these no-map placeholders (tee_secmem/gz/gz_log/
+		 * sspm/mcupm/log_store/emi_mbist). Overlapping no-map
+		 * reservations are safe (the union stays carved out) and are
+		 * kept on purpose: the framebuffer address comes from the
+		 * evergo downstream DTS while the other regions are camellia
+		 * guesses, so reserving the union protects against both
+		 * being right about different ranges.
+		 */
+		dpm_reserved: memory@ffe60000 {
+			reg = <0 0xffe60000 0 0x190000>;
+			no-map;
+		};
+
+		framebuffer_reserved: memory@7e605000 {
+			reg = <0 0x7e605000 0 0x1be0000>;
+			no-map;
+		};
+
+		minirdump: memory@48170000 {
+			reg = <0 0x48170000 0 0x10000>;
+			no-map;
+		};
+
+		pstore: memory@48090000 {
+			reg = <0 0x48090000 0 0xe0000>;
+			no-map;
+		};
+
+		picachu: memory@bfd00000 {
+			reg = <0 0xbfd00000 0 0x80000>;
+			no-map;
+		};
+
+		mcupm_reserved: memory@7e900000 {
+			reg = <0 0x7e900000 0 0x100000>;
+			no-map;
+		};
+
+		tee_reserved: memory@70000000 {
+			reg = <0 0x70000000 0 0x5000000>;
+			no-map;
+		};
+
+		tee_ree_reserved: memory@7d800000 {
+			reg = <0 0x7d800000 0 0xc00000>;
+			no-map;
+		};
+
+		tee_log_reserved: memory@bfc00000 {
+			reg = <0 0xbfc00000 0 0x20000>;
+			no-map;
+		};
+
+		sspm_reserved: memory@7feb0000 {
+			reg = <0 0x7feb0000 0 0x100000>;
+			no-map;
+		};
+
+		tee_secmem: memory@7e400000 {
+			reg = <0 0x7e400000 0 0x400000>;
+			no-map;
+		};
+
+		atf_log_reserved: memory@bfe00000 {
+			reg = <0 0xbfe00000 0 0x40000>;
+			no-map;
+		};
+
+		atf_ramdump_reserved: memory@bff70000 {
+			reg = <0 0xbff70000 0 0x80000>;
+			no-map;
+		};
+
+		atf_reserved: memory@48c00000 {
+			reg = <0 0x48c00000 0 0x200000>;
+			no-map;
+		};
+
+		log_store: memory@7ffbf000 {
+			reg = <0 0x7ffbf000 0 0x40000>;
+		};
+
+		gz_log: memory@7e800000 {
+			reg = <0 0x7e800000 0 0x41000>;
+		};
+
+		gz: memory@7ea00000 {
+			reg = <0 0x7ea00000 0 0x1400000>;
+			no-map;
+		};
+
+		emi_mbist_buf: memory@7ffff000 {
+			reg = <0 0x7ffff000 0 0x1000>;
+			no-map;
+		};
+	};
+
+	/* TODO: verify the evergo PMIC (MT6357 vs MT6359) against the
+	 * downstream tree before enabling pwrap and adding a PMIC include.
+	 *
+	 * &pwrap {
+	 *	status = "okay";
+	 * };
+	 */
+
+	vmch_fixed_reg: ldo-vmch {
+		compatible = "regulator-fixed";
+		regulator-name = "vmch";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-enable-ramp-delay = <60>;
+		regulator-always-on;
+	};
+
+	vmc_fixed_reg: ldo-vmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-enable-ramp-delay = <60>;
+		regulator-always-on;
+	};
+};
+
+/* eMMC. Experimental: pin muxing is SoC-standard for MSDC0 (GPIO65-76);
+ * timing values are conservative guesses - tune once the PMIC regulators
+ * are available.
+ */
+&mmc0 {
+	status = "okay";
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc0_pins_default>;
+	pinctrl-1 = <&mmc0_pins_default>;
+	bus-width = <8>;
+	max-frequency = <200000000>;
+	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
+	non-removable;
+};
+
+&pio {
+	mmc0_pins_default: mmc0-pins-default-state {
+		pins-clk-dsl {
+			pinmux = <PINMUX_GPIO65__FUNC_MSDC0_DSL>,
+				 <PINMUX_GPIO66__FUNC_MSDC0_CLK>;
+			drive-strength = <3>;
+			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+		};
+
+		pins-cmd-dat-rst {
+			pinmux = <PINMUX_GPIO67__FUNC_MSDC0_CMD>,
+				 <PINMUX_GPIO68__FUNC_MSDC0_RSTB>,
+				 <PINMUX_GPIO69__FUNC_MSDC0_DAT0>,
+				 <PINMUX_GPIO70__FUNC_MSDC0_DAT1>,
+				 <PINMUX_GPIO71__FUNC_MSDC0_DAT2>,
+				 <PINMUX_GPIO72__FUNC_MSDC0_DAT3>,
+				 <PINMUX_GPIO73__FUNC_MSDC0_DAT4>,
+				 <PINMUX_GPIO74__FUNC_MSDC0_DAT5>,
+				 <PINMUX_GPIO75__FUNC_MSDC0_DAT6>,
+				 <PINMUX_GPIO76__FUNC_MSDC0_DAT7>;
+			input-enable;
+			drive-strength = <3>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+		};
+	};
+};
+
+&mmc1 {
+	status = "okay";
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc1_pins_default>;
+	pinctrl-1 = <&mmc1_pins_default>;
+	bus-width = <4>;
+	max-frequency = <200000000>;
+	cap-sd-highspeed;
+	cap-mmc-highspeed;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	sd-uhs-ddr50;
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+	no-sdio;
+	cd-gpios = <&pio 4 GPIO_ACTIVE_HIGH>;
+	vmmc-supply = <&vmch_fixed_reg>; /* HACK: fake vmch until the PMIC is brought up */
+	vqmmc-supply = <&vmc_fixed_reg>; /* HACK: fake vmc until the PMIC is brought up */
+};
+
+/* SD is not working on camellia yet either - expect the same here. */
+
+&pio {
+	mmc1_pins_default: mmc1-pins-default-state {
+		pins-clk {
+			pinmux = <PINMUX_GPIO125__FUNC_MSDC1_CLK>;
+			drive-strength = <3>;
+			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
+		};
+
+		pins-cmd-dat {
+			pinmux = <PINMUX_GPIO128__FUNC_MSDC1_DAT0>,
+				 <PINMUX_GPIO127__FUNC_MSDC1_DAT1>,
+				 <PINMUX_GPIO129__FUNC_MSDC1_DAT2>,
+				 <PINMUX_GPIO130__FUNC_MSDC1_DAT3>,
+				 <PINMUX_GPIO126__FUNC_MSDC1_CMD>;
+			input-enable;
+			drive-strength = <3>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+		};
+	};
+};
+
+&usb2 {
+	status = "okay";
+	dr_mode = "peripheral";
+	maximum-speed = "high-speed";
+};
+
+&u2phy {
+	status = "okay";
+};
+
+&u2port0 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+/* TODO (facts from the downstream evergo DTS, for the next bring-up steps):
+ *  - DSI panel: k16a_36_02_0a_vdo / k16a_42_02_0b_vdo, video mode,
+ *      reset GPIO86, power-enable GPIO136, backlight-enable GPIO87,
+ *      bias GPIO137/GPIO138, TE GPIO84
+ *  - touch: Novatek NT36672C on SPI, reset GPIO13, irq GPIO14
+ *      (needs an SPI variant of the mainline novatek driver)
+ *  - haptic: Awinic AW8697 on i2c9 @ 0x5a, reset GPIO132, irq GPIO6
+ *  - NFC: ST21NFC on i2c3 @ 0x08, reset GPIO92, irq GPIO5
+ *  - fingerprint: FPC on spi5, reset GPIO17, irq GPIO18
+ *  - MT6360 companion PMIC irq GPIO10
+ *  - eMMC (mmc0) bring-up for on-board storage
+ */

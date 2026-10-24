@@ -101,7 +101,7 @@
 			no-map;
 		};
 
-		sspm_reserved: memory@77eb0000 {
+		sspm_reserved: memory@7feb0000 {
 			reg = <0 0x7feb0000 0 0x100000>;
 			no-map;
 		};
