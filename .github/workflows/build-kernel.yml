@@ -1,0 +1,31 @@
+name: build-kernel
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev dwarves
+
+      - name: Build kernel (Image + DTBs)
+        run: |
+          make ARCH=arm64 LLVM=1 defconfig
+          make ARCH=arm64 LLVM=1 -j"$(nproc)" Image dtbs
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evergo-mainline-kernel
+          path: |
+            arch/arm64/boot/Image
+            arch/arm64/boot/dts/mediatek/mt6833*.dtb
+          if-no-files-found: error
