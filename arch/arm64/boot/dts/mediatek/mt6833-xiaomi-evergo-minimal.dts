@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Minimal bring-up DT for Xiaomi evergo (Redmi Note 11T 5G / Note 11 5G)
+ *
+ * Deliberately stripped variant for bisecting early-boot problems:
+ * only PSCI/GIC/clocks, UART0 and USB (peripheral + g_serial) are wired
+ * up. No bootloader framebuffer, no firmware carveout guesses, no
+ * storage, no PMIC. If this reaches a kernel console while the full
+ * mt6833-xiaomi-evergo.dts does not, re-add the omitted nodes one by
+ * one (framebuffer reservation first, then carveouts, then mmc).
+ *
+ * Memory deliberately claims only the low 2 GB so the same DTB is safe
+ * on every RAM variant.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/mediatek,mt6833-pinfunc.h>
+
+#include "mt6833.dtsi"
+
+/ {
+	chassis-type = "handset";
+	compatible = "xiaomi,evergo", "mediatek,mt6833";
+	model = "Xiaomi Redmi Note 11T 5G / Redmi Note 11 5G (evergo, minimal)";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		bootargs = "earlycon=mtk8250,0x11002000 console=ttyS0,921600n8 console=ttyGS0 clk_ignore_unused regulator_ignore_unused pd_ignore_unused";
+		stdout-path = "serial0:921600n8";
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0 0x40000000 0 0x80000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* single, conservative carveout: TEE at the bottom of DRAM */
+		tee_memory: memory@70000000 {
+			reg = <0 0x70000000 0 0x5000000>;
+			no-map;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&usb2 {
+	status = "okay";
+	dr_mode = "peripheral";
+	maximum-speed = "high-speed";
+};
+
+&u2phy {
+	status = "okay";
+};
+
+&u2port0 {
+	status = "okay";
+};
