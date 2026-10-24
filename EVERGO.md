@@ -42,15 +42,15 @@
 | 功能 | 状态 |
 | --- | --- |
 | UART0 控制台(921600) | ✅ 预期可用(引脚 69/70 与 camellia 同为 SoC 固定复用) |
-| lk 引导的 simple-framebuffer | ⚠️ 地址取自下游 atag 默认值(0x7e605000/0x1be0000),需实机验证 |
-| USB2 musb(外设/OTG) | ⚠️ 上游树自带 "broken usb" workaround,host 模式不可靠 |
+| lk 引导的 simple-framebuffer | ⚠️ 地址取自下游 atag 默认值(0x7e605000/0x1be0000),需实机验证;`FB_SIMPLE`+`FRAMEBUFFER_CONSOLE` 已在 defconfig 修复中启用,地址对了就能显示内核文本 |
+| USB2 musb(外设模式 + ttyGS0 串口) | ⚠️ **基座 defconfig 缺 `USB_MUSB_MEDIATEK`(只开了全志的 SUNXI glue,USB 完全不会绑定)——已修复**;待实机验证 |
+| eMMC(mmc0) | ⚠️ 实验性启用(GPIO65-76 标准引脚组 + HS200) |
 | microSD | ⚠️ 实验性(camellia 上 SD 也尚未修好) |
-| eMMC(mmc0) | ❌ 未启用(下一步) |
 | pwrap/PMIC | ❌ 未启用——先在实机确认 PMIC 型号(MT6357 vs MT6359)再加 |
 | 显示 DSI / GPU / 触屏 / 音频 / 传感器 / 充电 | ❌ 未开始 |
 
-在 camellia 上已知的问题同样会影响 evergo(同一基座):SD 卡、USB host、
-以及 pmOS wiki 提到的"目前只在 CPU0 上启动"的 SMP 问题。
+修复的另一处基座 bug:camellia 的 `sspm_reserved` 节点单元地址(77eb0000)与
+reg(0x7feb0000)不一致,dtc 会告警——已修正,可回馈上游。
 
 ## 构建
 
